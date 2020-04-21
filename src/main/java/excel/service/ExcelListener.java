@@ -1,27 +1,41 @@
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+package excel.service;
 
-import java.io.File;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 
+@Component
+public class ExcelListener {
 
-public class ExcelParser {
+    private static boolean isLoad = false;
 
-    private static final Path FOLDER = Paths.get("src/main/resources");
+    @Autowired
+    private AnswerService answerService;
 
-    public List<Answer> getAnswers(String filename) throws IOException, InvalidFormatException {
-        Path path = Paths.get(FOLDER+"/"+filename);
-        Workbook workbook = new XSSFWorkbook(new File(path.toString()));
+    @Autowired
+    private AnswerUpdater answerUpdater;
 
-        return getAnswerFromExcel(workbook);
+
+    public boolean parseExcel(InputStream inputStream) throws IOException {
+
+        Workbook workbook = new XSSFWorkbook(inputStream);
+
+        List<Answer> answers = getAnswerFromExcel(workbook);
+
+        answerUpdater.updateAnswer(answers);
+        return true;
     }
 
-    public String readData(Workbook workbook) throws IOException {
+    private String readData(Workbook workbook) throws IOException {
 
         Sheet sheet = workbook.getSheetAt(0);   //getting the XSSFSheet object at given index
         Row row = sheet.getRow(10); //returns the logical row
@@ -29,7 +43,7 @@ public class ExcelParser {
         return cell.getStringCellValue();    //getting cell value
     }
 
-    public List<String> getTitleOfColumn(Workbook workbook) throws IOException {
+    private List<String> getTitleOfColumn(Workbook workbook) throws IOException {
 
         List<String> list = new LinkedList<>();
 
@@ -50,7 +64,7 @@ public class ExcelParser {
         }
     }
 
-    public int getLastCellIndex(Workbook workbook) throws IOException {
+    private int getLastCellIndex(Workbook workbook) throws IOException {
         int index = 0;
 
         while (true) {
@@ -58,14 +72,14 @@ public class ExcelParser {
             Row row = sheet.getRow(index);
 
             if (row == null) {
-//                index--;
+                index--;
                 return index;
             }
             index++;
         }
     }
 
-    public List<Answer> getAnswerFromExcel(Workbook workbook) throws IOException {
+    private List<Answer> getAnswerFromExcel(Workbook workbook) throws IOException {
 
         Sheet sheetText = workbook.getSheetAt(0);
         Sheet sheetLabel = workbook.getSheetAt(1);
@@ -80,9 +94,9 @@ public class ExcelParser {
 
                 Answer answer = new Answer();
 
-                answer.setId(
-                        (long) sheetText.getRow(row).getCell(0).getNumericCellValue()
-                );
+//                answer.setId(
+//                        (long) sheetText.getRow(row).getCell(0).getNumericCellValue()
+//                );
 
                 answer.setLanguage(
                         getLanguageFromString
